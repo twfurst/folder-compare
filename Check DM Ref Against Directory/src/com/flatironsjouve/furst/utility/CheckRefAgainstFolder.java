@@ -1,7 +1,9 @@
 package com.flatironsjouve.furst.utility;
 
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -31,11 +33,35 @@ public class CheckRefAgainstFolder {
 	//*****XPath statements*****
 	private final String dmRefXP = "//dmRef";
 	private final String dmCodeXp = "dmRefIdent/dmCode";
+	private static File fileName;
 	//*****ArrayList to store info*****
 	private ArrayList<String> filesAsDm = new ArrayList<String>();
 	private ArrayList<String> missingDmRef = new ArrayList<String>();
 	//*****Map to store unique dmRef*****
 	private Map<String, String> uniqueRefs = new HashMap<String, String>();
+	
+	public static void main(String[] args) {
+		// TODO Auto-generated method stub
+		
+		if(args.length == 0)
+		{
+			new CheckRefAgainstFolder();
+		}
+		else if(args.length == 1)
+		{
+			File baseDirectory = new File(args[0]);
+			fileName = new File(baseDirectory, "CheckRefAgainstFolder.txt");
+
+			if(fileName.exists() && !fileName.isDirectory()) {
+				fileName.delete();
+			}
+			new CheckRefAgainstFolder(args[0]);
+		}
+		else
+		{
+			System.out.print("Too many arguments supplied. Either supply one folder path, or none.");
+		}
+	}
 	
 	public CheckRefAgainstFolder()
 	{
@@ -46,7 +72,13 @@ public class CheckRefAgainstFolder {
 		String inputPath = input.nextLine();
 		input.close();
 		File[] pathFile = new File(inputPath).listFiles();
-		
+
+		File baseDirectory = new File(inputPath);
+		fileName = new File(baseDirectory, "CheckRefAgainstFolder.txt");
+
+		if(fileName.exists() && !fileName.isDirectory()) {
+			fileName.delete();
+		}
 		processDirContents(pathFile);
 	}
 	
@@ -79,36 +111,29 @@ public class CheckRefAgainstFolder {
 		XP = XPF.newXPath();
 	}
 	
-	public static void main(String[] args) {
-		// TODO Auto-generated method stub
-		
-		if(args.length == 0)
-		{
-			new CheckRefAgainstFolder();
-		}
-		else if(args.length == 1)
-		{
-			new CheckRefAgainstFolder(args[0]);
-		}
-		else
-		{
-			System.out.print("Too many arguments supplied. Either supply one folder path, or none.");
-		}
-	}
-	
 	private void processDirContents(File[] folder)
 	{
-		for(File f: folder)
-		{
-			if(f.getName().endsWith(".xml") || f.getName().endsWith(".XML"))
+		try {
+			for(File f: folder)
 			{
-				System.out.println("Processing " + f.getName() + "...");
-				filesAsDm.add(f.getName().substring(0, f.getName().lastIndexOf(".")));
-				processXmlFile(f);
+				if(f.getName().endsWith(".xml") || f.getName().endsWith(".XML"))
+				{
+					write("Processing " + f.getName() + "...");
+					filesAsDm.add(f.getName().substring(0, f.getName().lastIndexOf(".")));
+					processXmlFile(f);
+				}
 			}
+			write("There are " + uniqueRefs.size() + " unique data module references in all files");
+			findMissingMods();
+		} catch(Exception e) {
+		  System.out.print("Caught Exception");
+		  System.out.print("getMessage():" + e.getMessage());
+		  System.out.print("getLocalizedMessage():" +
+			e.getLocalizedMessage());
+		  System.out.print("toString():" + e);
+		  System.out.print("printStackTrace():");
+		  e.printStackTrace(System.out);
 		}
-		System.out.println("There are " + uniqueRefs.size() + " unique data module references in all files");
-		findMissingMods();
 	}
 	
 	private void processXmlFile(File xml)
@@ -117,7 +142,7 @@ public class CheckRefAgainstFolder {
 		{
 			Document doc = DB.parse(xml);
 			NodeList allDmRef = (NodeList)XP.compile(dmRefXP).evaluate(doc, XPathConstants.NODESET);
-			System.out.println("\t"+ xml.getName() + " has " + allDmRef.getLength() + " dmRefs");
+			write("\t"+ xml.getName() + " has " + allDmRef.getLength() + " dmRefs");
 			for(int i = 0; i < allDmRef.getLength(); i++)
 			{
 				Node dmref = allDmRef.item(i);
@@ -147,7 +172,7 @@ public class CheckRefAgainstFolder {
 				
 				String dmc = "DMC-" + modelic + "-" + sysdiff + "-" + system + "-" + subsys + subsubsys + "-"
 						+ assy + "-" + disassy + disassyv + "-" + info + infov + "-" + item;
-				System.out.println("\tAdding " + dmc + " to unique list");
+				write("\tAdding " + dmc + " to unique list");
 				uniqueRefs.put(dmc, dmc);
 				
 			}
@@ -174,15 +199,32 @@ public class CheckRefAgainstFolder {
 		
 		if(missingDmRef.size() > 0)
 		{
-			System.out.println("Missing " + missingDmRef.size() + " XML files:");
+			write("Missing " + missingDmRef.size() + " XML files:");
 			for(String d : missingDmRef)
 			{
-				System.out.println("\t" + d);
+				//System.out.println("\t" + d);
+			    write("\t" + d);
 			}
 		}
 		else
 		{
-			System.out.println("All dmRefs accounted for");
+			write("All dmRefs accounted for");
+		}
+	}
+	// Write a single file in one method call:
+	public static void write(String text) {
+		try {
+
+			PrintWriter out = new PrintWriter(
+				new FileWriter(fileName, true));
+			try {
+				System.out.println(text);
+				out.print(text + "\n");
+			} finally {
+				out.close();
+			}
+		} catch(IOException e) {
+			throw new RuntimeException(e);
 		}
 	}
 

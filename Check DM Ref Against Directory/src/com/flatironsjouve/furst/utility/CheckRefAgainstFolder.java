@@ -33,12 +33,17 @@ public class CheckRefAgainstFolder {
 	//*****XPath statements*****
 	private final String dmRefXP = "//dmRef";
 	private final String dmCodeXp = "dmRefIdent/dmCode";
+	private final String entityXp = "//@infoEntityIdent";
+	
 	private static File fileName;
 	//*****ArrayList to store info*****
 	private ArrayList<String> filesAsDm = new ArrayList<String>();
+	private ArrayList<String> filesAsIcn = new ArrayList<String>();
 	private ArrayList<String> missingDmRef = new ArrayList<String>();
+	private ArrayList<String> missingIcns = new ArrayList<String>();
 	//*****Map to store unique dmRef*****
 	private Map<String, String> uniqueRefs = new HashMap<String, String>();
+	private Map<String, String> uniqueIcns = new HashMap<String, String>();
 	
 	public static void main(String[] args) {
 		// TODO Auto-generated method stub
@@ -122,8 +127,14 @@ public class CheckRefAgainstFolder {
 					filesAsDm.add(f.getName().substring(0, f.getName().lastIndexOf(".")));
 					processXmlFile(f);
 				}
+				
+				if(f.getName().endsWith(".tif") || f.getName().endsWith(".TIF"))
+				{
+					filesAsIcn.add(f.getName().substring(0, f.getName().lastIndexOf(".")));
+				}
 			}
 			write("There are " + uniqueRefs.size() + " unique data module references in all files");
+			write("There are " + uniqueIcns.size() + " unique graphic entity references in all files");
 			findMissingMods();
 		} catch(Exception e) {
 		  System.out.print("Caught Exception");
@@ -142,7 +153,9 @@ public class CheckRefAgainstFolder {
 		{
 			Document doc = DB.parse(xml);
 			NodeList allDmRef = (NodeList)XP.compile(dmRefXP).evaluate(doc, XPathConstants.NODESET);
+			NodeList allEntityIdent = (NodeList)XP.compile(entityXp).evaluate(doc, XPathConstants.NODESET);
 			write("\t"+ xml.getName() + " has " + allDmRef.getLength() + " dmRefs");
+			write("\t"+ xml.getName() + " has " + allEntityIdent.getLength() + " entity references (graphics)");
 			for(int i = 0; i < allDmRef.getLength(); i++)
 			{
 				Node dmref = allDmRef.item(i);
@@ -172,9 +185,28 @@ public class CheckRefAgainstFolder {
 				
 				String dmc = "DMC-" + modelic + "-" + sysdiff + "-" + system + "-" + subsys + subsubsys + "-"
 						+ assy + "-" + disassy + disassyv + "-" + info + infov + "-" + item;
-				write("\tAdding " + dmc + " to unique list");
-				uniqueRefs.put(dmc, dmc);
+				if(!uniqueRefs.containsKey(dmc)) {
+					write("\tAdding " + dmc + " to unique DMC list");
+					uniqueRefs.put(dmc, dmc);
+				}
+				else
+				{
+					write("\tFound " + dmc + ", already in unique DMC list");
+				}
 				
+				
+			}
+			for(int i = 0; i < allEntityIdent.getLength(); i++) {
+				Node icn = allEntityIdent.item(i);
+				if(!uniqueIcns.containsKey(icn.getNodeValue()))
+				{
+					write("\tAdding " + icn.getNodeValue() + " to unique ICN list");
+					uniqueIcns.put(icn.getNodeValue(), icn.getNodeValue());
+				}
+				else
+				{
+					write("\tFound " + icn.getNodeValue() + ", already in unique ICN list");
+				}
 			}
 		} 
 		catch (SAXException | IOException e) 
@@ -196,6 +228,13 @@ public class CheckRefAgainstFolder {
 				missingDmRef.add(dmc);
 			}
 		}
+		for(String icn : uniqueIcns.keySet())
+		{
+			if(!filesAsIcn.contains(icn))
+			{
+				missingIcns.add(icn);
+			}
+		}
 		
 		if(missingDmRef.size() > 0)
 		{
@@ -209,6 +248,16 @@ public class CheckRefAgainstFolder {
 		else
 		{
 			write("All dmRefs accounted for");
+		}
+		
+		if(missingIcns.size() > 0)
+		{
+			write("Missing " + missingIcns.size() + " images:");
+			
+			for(String icn : missingIcns)
+			{
+				write("\t" + icn);
+			}
 		}
 	}
 	// Write a single file in one method call:

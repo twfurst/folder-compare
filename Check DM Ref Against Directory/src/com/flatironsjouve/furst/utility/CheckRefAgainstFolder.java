@@ -44,6 +44,7 @@ public class CheckRefAgainstFolder {
 	//*****Map to store unique dmRef*****
 	private Map<String, String> uniqueRefs = new HashMap<String, String>();
 	private Map<String, String> uniqueIcns = new HashMap<String, String>();
+	private Map<String, Map<String,String>> whereUsed = new HashMap<String, Map<String,String>>();
 	
 	public static void main(String[] args) {
 		// TODO Auto-generated method stub
@@ -185,6 +186,9 @@ public class CheckRefAgainstFolder {
 				
 				String dmc = "DMC-" + modelic + "-" + sysdiff + "-" + system + "-" + subsys + subsubsys + "-"
 						+ assy + "-" + disassy + disassyv + "-" + info + infov + "-" + item;
+				HashMap<String, String> map = (HashMap) whereUsed.get(dmc);
+				map.put(dmc, dmc);
+				whereUsed.put(dmc, map);
 				if(!uniqueRefs.containsKey(dmc)) {
 					write("\tAdding " + dmc + " to unique DMC list");
 					uniqueRefs.put(dmc, dmc);

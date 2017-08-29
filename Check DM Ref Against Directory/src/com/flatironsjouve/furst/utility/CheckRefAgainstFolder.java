@@ -44,7 +44,7 @@ public class CheckRefAgainstFolder {
 	//*****Map to store unique dmRef*****
 	private Map<String, String> uniqueRefs = new HashMap<String, String>();
 	private Map<String, String> uniqueIcns = new HashMap<String, String>();
-	private Map<String, Map<String,String>> whereUsed = new HashMap<String, Map<String,String>>();
+	private Map<Object, Map<Object,String>> whereUsed = new HashMap<Object, Map<Object,String>>();
 	
 	public static void main(String[] args) {
 		// TODO Auto-generated method stub
@@ -186,8 +186,17 @@ public class CheckRefAgainstFolder {
 				
 				String dmc = "DMC-" + modelic + "-" + sysdiff + "-" + system + "-" + subsys + subsubsys + "-"
 						+ assy + "-" + disassy + disassyv + "-" + info + infov + "-" + item;
-				HashMap<String, String> map = (HashMap) whereUsed.get(dmc);
-				map.put(dmc, dmc);
+				Map<Object, String> map;
+				if(whereUsed.get(dmc) != null)
+				{
+					map = whereUsed.get(dmc);
+					map.put(dmc, xml.getName());
+				}
+				else
+				{
+					map = new HashMap<Object, String>();
+					map.put(dmc, xml.getName());
+				}
 				whereUsed.put(dmc, map);
 				if(!uniqueRefs.containsKey(dmc)) {
 					write("\tAdding " + dmc + " to unique DMC list");
@@ -202,6 +211,18 @@ public class CheckRefAgainstFolder {
 			}
 			for(int i = 0; i < allEntityIdent.getLength(); i++) {
 				Node icn = allEntityIdent.item(i);
+				Map<Object, String> map;
+				if(whereUsed.get(icn.getNodeValue()) != null)
+				{
+					map = whereUsed.get(icn.getNodeValue());
+					map.put(icn.getNodeValue(), xml.getName());
+				}
+				else
+				{
+					map = new HashMap<Object, String>();
+					map.put(icn.getNodeValue(), xml.getName());
+				}
+				whereUsed.put(icn.getNodeValue(), map);
 				if(!uniqueIcns.containsKey(icn.getNodeValue()))
 				{
 					write("\tAdding " + icn.getNodeValue() + " to unique ICN list");
@@ -246,7 +267,12 @@ public class CheckRefAgainstFolder {
 			for(String d : missingDmRef)
 			{
 				//System.out.println("\t" + d);
-			    write("\t" + d);
+			    write("\t" + d + " used in:");
+			    Map<Object, String> map = whereUsed.get(d);
+			    for(String s : map.values())
+			    {
+			    	write("\t\t" + s);
+			    }
 			}
 		}
 		else
@@ -261,7 +287,16 @@ public class CheckRefAgainstFolder {
 			for(String icn : missingIcns)
 			{
 				write("\t" + icn);
+				Map<Object, String> map = whereUsed.get(icn);
+			    for(String s : map.values())
+			    {
+			    	write("\t\t" + s);
+			    }
 			}
+		}
+		else
+		{
+			write("All illustrations accounted for");
 		}
 	}
 	// Write a single file in one method call:
